@@ -5,7 +5,6 @@ import {ticketModel} from "../models/tickets.model.js";
 
 class CartManager {
 
-
     async getCartById(cartId) {
         try {
             console.log("Searching cart with ID:", cartId);
@@ -52,19 +51,25 @@ class CartManager {
                 return { success: false, message: 'Carrito no encontrado' };
             }
     
-           
             if (Array.isArray(products)) {
                 for (const productData of products) {
                     const productId = productData.productId;
                     const quantity = productData.quantity;
     
-                    const product = await productsModel.findById(productId);
-                    if (!product) {
-                        return { success: false, message: `Producto ${productId} no encontrado` };
-                    }
+                    const existingProductIndex = cart.products.findIndex(p => p.product.toString() === productId.toString());
     
-                    // Agregar el producto con su cantidad al carrito
-                    cart.products.push({ product: productId, quantity });
+                    if (existingProductIndex !== -1) {
+                        // El producto ya está en el carrito, actualiza cantidad
+                        cart.products[existingProductIndex].quantity += quantity;
+                    } else {
+                        // El producto no está en el carrito, agrégalo
+                        const product = await productModel.findById(productId);
+                        if (!product) {
+                            return { success: false, message: `Producto ${productId} no encontrado` };
+                        }
+    
+                        cart.products.push({ product: productId, quantity });
+                    }
                 }
             } else {
                 // Manejar si products no es un array
@@ -79,7 +84,7 @@ class CartManager {
             return { success: false, message: 'Error al agregar productos al carrito con cantidad' };
         }
     }
-    
+    //actualizar productos//
     async updateProductQuantity(cartId, productId, newQuantity) {
         try {
             const cart = await cartModel.findById(cartId);
@@ -111,6 +116,7 @@ class CartManager {
             return { error: 'Error al eliminar el carrito' };
         }
     }
+    //delete todos los productos//
 
     async deleteAllProductsInCart(cartId) {
         try {
@@ -151,10 +157,10 @@ class CartManager {
             cart.products.splice(productIndex, 1);
             await cart.save();
 
-            return { message: 'Producto eliminado del carrito' };
+            return { message: 'Producto eliminado del cart' };
         } catch (error) {
             console.error(error);
-            return { error: 'Error al eliminar el producto del carrito' };
+            return { error: 'Error al eliminar el producto del cart' };
         }
     }
 
@@ -176,12 +182,23 @@ class CartManager {
     async getCartProducts(cartId) {
         try {
             const cart = await cartModel.findById(cartId);
-            const productIds = cart.products.map(product => product.product);
+            const productsInCart = cart.products.map(async productData => {
+                const productId = productData.product;
+                const quantity = productData.quantity;
     
-            // Obtener información completa de los productos a partir de los IDs
-            const products = await productsModel.find({ _id: { $in: productIds } });
+    // Busca el producto completo por  ID//
+                const fullProduct = await productsModel.findById(productId);
     
-            // Ahora tienes toda la información de los productos
+    // Devuelve la información del producto y la cantidad en el carrito//
+                return {
+                    product: fullProduct,
+                    quantity: quantity
+                };
+            });
+    
+    // Espera a que todas las promesas en el array se resuelvan
+            const products = await Promise.all(productsInCart);
+    
             return products;
         } catch (error) {
             console.error('Error al obtener productos del carrito:', error);
@@ -189,7 +206,8 @@ class CartManager {
         }
     }
     
-    // Función para verificar los IDs de los productos en la base de datos
+    
+    // Verificar los IDs de los productos en la base de datos
     async checkProductIdsInDB(productIds) {
         try {
             const products = await productsModel.find({ _id: { $in: productIds } });
@@ -203,10 +221,14 @@ class CartManager {
     async checkStock(cartProducts) {
         try {
             console.log("productos del carrito", cartProducts);
-            for (const product of cartProducts) {
+    
+            for (const cartProduct of cartProducts) {
+                const product = cartProduct.product;
+                const quantity = cartProduct.quantity;
+    
                 console.log(`Verificando stock para producto ${product._id}`);
     
-                const productInDB = await productsModel.findById(product._id);
+                const productInDB = await productModel.findById(product._id);
     
                 if (!productInDB) {
                     console.log(`Producto ${product._id} no encontrado en la base de datos`);
@@ -215,7 +237,7 @@ class CartManager {
     
                 const availableStock = productInDB.stock;
     
-                if (product.quantity > availableStock) {
+                if (quantity > availableStock) {
                     console.log(`Stock insuficiente para ${productInDB.title}`);
                     return { success: false, message: `Stock insuficiente para ${productInDB.title}` };
                 }
@@ -224,7 +246,7 @@ class CartManager {
     
                 // Restar la cantidad del carrito al stock del producto en la base de datos
                 console.log(`Stock antes de la actualización para ${productInDB.title}: ${productInDB.stock}`);
-                productInDB.stock -= product.quantity;
+                productInDB.stock -= quantity;
                 await productInDB.save();
                 console.log(`Stock después de la actualización para ${productInDB.title}: ${productInDB.stock}`);
             }
@@ -236,9 +258,10 @@ class CartManager {
         }
     }
 
+// crear un ticket//
+
     async createTicket(ticketData) {
         try {
-            // Código para crear un ticket en la base de datos utilizando el ticketModel
             const ticket = new ticketModel(ticketData);
             const savedTicket = await ticket.save();
             return savedTicket;

@@ -10,7 +10,7 @@ export default class UserManager {
     get = async () => {
         try
         {
-            let users = await usersModel.find()
+            let users = await usersModel.find().select('_id first_name email rol');
             return users
         }catch (error) {
             console.error('Error al obtener usuarios:', error);
@@ -47,7 +47,7 @@ export default class UserManager {
         {
             let userCreate = await usersModel.create(userData);
             return userCreate
-            //console.log("Usuario creado correctamente")//
+         
         }catch(error){
             console.error('Error al crear usuario:', error);
             return 'Error al crear usuario';
@@ -64,6 +64,23 @@ export default class UserManager {
         } else {
           return "usuario con otro rol"
         }""
+      } catch (error) {
+        console.error('Error al obtener el rol del usuario:', error);
+        return 'Error al obtener el rol del usuario';
+      }
+    };
+
+    getIdCartByEmailUser = async (email) => {
+      try {
+        // Buscar el usuario por correo electrónico//
+        const user = await usersModel.findOne({ email });
+    
+        // Verificar si se encontró un usuario y si tiene un rol premium//
+        if (user && user.id_cart) {
+          return user.id_cart;
+        } else {
+            return null; 
+        }
       } catch (error) {
         console.error('Error al obtener el rol del usuario:', error);
         return 'Error al obtener el rol del usuario';
@@ -87,6 +104,7 @@ export default class UserManager {
           return 'Error al actualizar la contraseña';
       }
   };
+
   updateLastConnection = async (email) => {
     try {
       const updatedUser = await usersModel.findOneAndUpdate(
@@ -106,6 +124,27 @@ export default class UserManager {
       throw error;
     }
   };
+
+  updateIdCartUser = async ({email, newIdCart}) => {
+    try {
+      const updatedUser = await usersModel.findOneAndUpdate(
+        { email: email },
+        { $set: { id_cart: newIdCart } },
+        { new: true }
+      );
+  
+      if (updatedUser) {
+        return updatedUser;
+      } else {
+        console.error('Usuario no encontrado');
+        return null;
+      }
+    } catch (error) {
+      console.error('Error al actualizar el id_Cart del usuario:', error);
+      throw error;
+    }
+  };
+
     findJWT = async (filterFunction) => {
         try
         {
@@ -150,6 +189,45 @@ export default class UserManager {
           return 'Error al actualizar el rol';
         }
       };
+
+      //delete//
+      deleteUser = async (userId) => {
+        try {
+            // Ver el valor del ID si es un objeto
+            const idToDelete = typeof userId === 'object' ? userId.id : userId;
+    
+            // Eliminar el usuario utilizando el ID
+            let deletedUser = await usersModel.deleteOne({ _id: idToDelete });
+            return deletedUser;
+        } catch (error) {
+            console.error('Error al eliminar usuario:', error);
+            return 'Error al eliminar usuario';
+        }
+      };
+      deleteUsersByFilter = async (filter) => {
+        try {
+          // Obtener usuarios que coinciden con el filtro
+          const usersToDelete = await usersModel.find(filter);
+
+          // Obtener los correos electrónicos antes de eliminarlos
+          const deletedUserEmails = usersToDelete.map(user => user.email);
+
+          // Eliminar usuarios inactivos
+          const result = await usersModel.deleteMany(filter);
+
+          if (result.deletedCount > 0) {
+            // Si se eliminó al menos un usuario, mostrar los correos electrónicos
+            return deletedUserEmails;
+          } else {
+            // No se eliminaron usuarios
+            return [];
+          }
+        } catch (error) {
+          console.error('Error al eliminar usuarios:', error);
+          throw error;
+        }
+      };
+
       updateDocuments = async (userId, newDocuments) => {
         try {
           // Encuentra el ID
@@ -165,7 +243,7 @@ export default class UserManager {
             user.documents = [];
           }
       
-          // Agrega los nuevos documentos
+          // Agrega nuevos documentos
           user.documents.push(...(Array.isArray(newDocuments) ? newDocuments : [newDocuments]));
       
           // Guarda el usuario actualizado en la base de datos

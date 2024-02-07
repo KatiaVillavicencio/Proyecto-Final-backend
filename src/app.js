@@ -196,7 +196,7 @@ app.get('/admin',passportCall('jwt'), authorization('user'),(req,res) =>{
 })
 
 
-//Recuperar contrasena//
+//::::::Recuperar contrasena::::::://
 app.post('/forgot-password', async (req, res) => {
     const { email } = req.body;
     const emailToFind = email;
@@ -244,8 +244,63 @@ app.post('/forgot-password', async (req, res) => {
     }
   });
 
+  
+  //::::::::::::::Ver Carritos::::::::::::::::::::://
+app.get("/carts/:cid", async (req, res) => {
+    let id = req.params.cid
+    let emailActive = req.query.email
+    let allCarts  = await carts.getCartWithProducts(id)
+    allCarts.products.forEach(producto => {
+        producto.total = producto.quantity * producto.productId.price
+    });
+    const sumTotal = allCarts.products.reduce((total, producto) => {
+        return total + (producto.total || 0);  // Asegurarse de manejar casos donde total no esté definido
+    }, 0);
+    res.render("viewCart", {
+        title: "Vista Carro",
+        carts : allCarts,
+        user: emailActive,
+        calculateSumTotal: products => products.reduce((total, producto) => total + (producto.total || 0), 0)
+    });
+})
 
-//mocking//
+//::::::::::::::Checkout:::::::::::://
+app.get("/checkout", async (req, res) => {
+    let cart_Id = req.query.cartId
+    let purchaser = req.query.purchaser
+    let totalAmount = req.query.totalPrice
+    let newCart = await carts.addCart()
+    let newIdCart = newCart._id.toString()
+    let updateUser = await users.updateIdCartUser({email: purchaser, newIdCart})
+    if(updateUser)
+    {
+        const newTicket = {
+            code: nanoid(),
+            purchase_datetime: Date(),
+            amount:totalAmount,
+            purchaser: purchaser,
+            id_cart_ticket:cart_Id
+       }
+       let result = await tickets.addTicket(newTicket)
+       const newTicketId = result._id.toString();
+       // Redirigir al usuario a la página del ticket recién creado
+       res.redirect(`/tickets/${newTicketId}`);
+    }
+     
+})
+
+//::::::::::::Ver Tickets:::::::::::://
+app.get("/tickets/:tid", async (req, res) => {
+    let id = req.params.tid
+    let allTickets  = await tickets.getTicketById(id)
+    res.render("viewTicket", {
+        title: "Vista Ticket",
+        tickets : allTickets
+    });
+})
+
+
+//:::::::::::mocking::::::::::::::://
 
 function getRandomNumber(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min);
@@ -270,4 +325,6 @@ app.get("/mockingproducts", async(req,res)=>{
 
     res.send(products);
 })
+
+
 
