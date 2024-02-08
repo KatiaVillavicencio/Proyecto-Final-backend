@@ -23,24 +23,11 @@ socket.on("success", (data) => {
         icon: 'success',
         title: data,
         text: `Correo enviado`,
-        confirmButtonText: 'Aceptar', // Cambia el texto del botón Aceptar
+        confirmButtonText: 'Aceptar', 
     }).then((result) => {
         if (result.isConfirmed) {
-            location.reload(); // Recarga la página cuando se hace clic en Aceptar
+            location.reload(); 
         }
     });
 });
 
-// socket.on("test", data => {
-//     console.log(data)
-// })
-//const socket = io()
-
-//----------------------Enviar------------//
-//socket.emit("message", "!Hola, me estoy comunicando desde un websocket!")
-//----------------------------------------//
-//--------------------Recibir en Consola de Navegador----------//
-// socket.on("test", data => {
-//     console.log(data)
-// })
-//---------------------------------------------------------------//
