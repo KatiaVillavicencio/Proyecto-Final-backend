@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalles de carrito</title>
+</head>
+<body>
+    <h1>Detalles del Carrito</h1>
+    <a href="/allproducts">Todos los productos</a>
+    <div id="ticketContainer" style="display: none;">
+        {{#if compraExitosa}}
+            <h2>Detalles del Ticket:</h2>
+            <p>Código: {{ticket.code}}</p>
+            <p>Total: {{ticket.amount}}</p>
+            <!-- Puedes mostrar otros detalles del ticket según sea necesario -->
+        {{/if}}
+    </div>
+    <div>
+        {{#if cart}}
+            <h2>Productos en el carrito:</h2>
+            <ul>
+                {{#each cart.products}}
+                    <li>{{this.product.title}} - Precio: {{this.product.price}} - Cantidad: {{this.quantity}}</li>
+                {{/each}}
+            </ul>
+            <button id="purchaseBtn">Finalizar compra</button>
+        {{else}}
+            <p>No se encontró el carrito.</p>
+        {{/if}}
+    </div>
+
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/scripts.js"></script>
+</body>
+</html>
