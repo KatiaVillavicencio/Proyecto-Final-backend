@@ -240,7 +240,7 @@ app.post('/forgot-password', async (req, res) => {
         res.render('resetPassword', { token , email: emailToken});
     }
     else{
-        res.sendFile('index.html', { root: app.get('views') });
+        res.sendFile('html/index.html', { root: app.get('views') });
     }
   });
 
