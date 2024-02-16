@@ -64,6 +64,35 @@ userRouter.post("/premium/:uid", async (req, res) => {
     req.logger.error('Error en la ruta /premium/:uid');
     res.status(500).json({ error: 'Error interno del servidor' });
   }
+})
+
+//user delete//
+
+userRouter.delete('/', async (req, res) => {
+  try {
+
+    const currentDate = new Date();
+    const cutoffDate = new Date(currentDate.getTime() - 2 * 24 * 60 * 60 * 1000); 
+    // Eliminar usuarios inactivos
+    const result = await usersMongo.deleteUsersByFilter({ last_connection: { $lt: cutoffDate } });
+    if(result.length > 0){
+      // Enviar correos electrónicos a los usuarios eliminados
+      for (const userEmail of result) {
+      await transport.sendMail({
+        from: 'katiamvv5@gmail.com', 
+        to: userEmail,
+        subject: 'Eliminación de cuenta por inactividad por mas de 2hrs',
+        text: 'Tu cuenta ha sido eliminadapor inactividad.'
+      });
+    }
+    res.status(200).json({ message: 'Usuarios eliminados con éxito.' });
+    }else{
+      res.status(500).json({ message: 'No se eliminaron usuarios por inactividad' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al eliminar usuarios.' });
+  }
 });
 
   //upload documents//
