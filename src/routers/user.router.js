@@ -8,11 +8,18 @@ import uploader from "../utils.js";
 const userRouter = Router()
 
 const usersMongo = new UserManager()
+//get users//
 
 userRouter.get("/", async (req, res) => {
-    req.logger.info('Se cargan usuarios');
+   try{
+     req.logger.info('Se cargan usuarios');
     let result = await usersMongo.get()
-    res.send({ status: "success", payload: result })
+    res.send({ status: "success", payload: result });
+   }
+    catch (error){
+      req.logger.error('Error al cargar usuarios');
+      res.status(500).send({status: "error", message: "Error del servidor"});
+    }
 })
 
 userRouter.post("/", async (req, res) => {
