@@ -50,6 +50,32 @@ routerP.post("/", async (req, res) => {
     }
     
 })
+routerP.delete('/:idProd', async (req, res) => {
+    try 
+    {
+        const idProducto = req.params.idProd;
+        let ownerProd = await productMongo.getProductOwnerById(idProducto)
+        let userRol = await userService.getRolUser(ownerProd.owner)
+        if(userRol == 'premium')
+        {
+            await transport.sendMail({
+                from: 'katiamvv5@gmail.com',
+                to: ownerProd.owner,
+                subject: 'Se elimina Producto con Owner Premium',
+                html:`Se elimina producto con id ${idProducto} correctamente`,
+            });
+            res.status(200).json({ message: 'Producto eliminado con éxito.' });
+        }else{
+            productMongo.deleteProduct(idProducto)
+            res.status(200).json({ message: 'Producto eliminado con éxito.' });
+        }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Error al eliminar usuarios.' });
+    }
+  });
+
+  
 
 export default routerP
 
